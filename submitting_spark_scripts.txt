@@ -1,0 +1,47 @@
+###using spark notebook on emr cluster
+
+aws s3 ls --profile burner
+
+#create a bucket to store inputs and outputs
+aws s3 mb s3://rakeshc-spark-configs --region us-west-2 --profile burner
+
+#copy file from local fs to s3
+aws s3 cp cities.csv s3://rakeshc-spark-configs --profile burner
+
+#copy from s3 to the emr master node
+aws s3 cp s3://rakeshc-spark-configs/cities.csv . 
+aws s3 cp s3://rakeshc-spark-configs/sparkify_log_small_2.json . 
+aws s3 cp s3://rakeshc-spark-configs/sparkify_log_small.json . 
+
+#create a folder in spark hdfs
+hdfs dfs -mkdir /user/sparkify_data 
+
+# copy files from master node to HDFS(local)
+hdfs dfs -copyFromLocal <FROM> <TO>
+hdfs dfs -copyFromLocal sparkify_log_small.json /user/sparkify_data/
+
+#try running commands in test-emr.ipynb
+
+
+
+
+
+###Submitting spark scripts
+
+#copy driver code to local fs 
+aws s3 cp s3://rakeshc-spark-configs/lower_songs.py . 
+
+which spark-submit
+/usr/bin/spark-submit --master yarn ./lower_songs.py
+
+--master location of master node(mostly ip address)
+yarn will detect master node for you
+
+
+
+
+
+#jupyter notebook spark error
+
+https://stackoverflow.com/questions/58941994/no-module-named-pyspark-when-running-jupyter-notebook-inside-emr
+open jupyter lab notebook and select new spark notebook from there. This will initiate the spark context automatically for you.

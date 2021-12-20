@@ -1,0 +1,73 @@
+aws configure --profile burner
+
+aws ec2 create-default-vpc --profile burner
+
+subnet - subnet-0aa73fed936b734fc
+keypair - AWS_EC2_Demo
+
+aws emr create-default-roles --profile burner
+
+#### 1 - without bootstrap scripts
+aws emr create-cluster --name testEMRcluster --use-default-roles --release-label emr-5.28.0 --instance-count 3 --applications Name=Spark --ec2-attributes KeyName=AWS_EC2_Demo,SubnetId=subnet-0aa73fed936b734fc --instance-type m5.xlarge --profile burner
+
+//use this if you want to created short lived imr --auto-terminate
+//use this to perform bootstrap actions --bootstrap-actions Path=<YOUR_BOOTSTRAP_FILENAME> 
+#check for creation status
+
+###to setup bootstrap commands
+###copy bootstrap file to s3 and add --bootstrap-actions flag to create-cluster command
+
+#create a bucket to store inputs and outputs
+#aws s3 mb s3://rakeshc-spark-configs --region us-west-2 --profile burner
+
+
+aws s3 cp bootstrap_emr.sh s3://rakeshc-spark-configs --profile burner
+
+output -> s3://rakeshc-spark-configs/bootstrap_emr.sh
+
+#### 2- using bootstrap scripts
+aws emr create-cluster --name testEMRcluster --use-default-roles --release-label emr-5.28.0 --instance-count 3 --applications Name=Spark --ec2-attributes KeyName=AWS_EC2_Demo,SubnetId=subnet-0aa73fed936b734fc --instance-type m5.xlarge --bootstrap-actions Path=s3://rakeshc-spark-configs/bootstrap_emr.sh --profile burner
+
+
+aws emr describe-cluster --cluster-id j-2A98ANMAZVF3L --profile burner
+
+#Edit the security group to authorize inbound SSH traffic (port 22) from your local computer. 
+#do this for the security group associated with the master
+
+#retrieves all ec2 instances created
+aws ec2 describe-instances --filter "Name=instance-state-name,Values=running" --query "Reservations[*].Instances[*].[PublicDnsName, SecurityGroups]" --output text --profile burner        
+
+#retrieves public dns of master node
+aws ec2 describe-instances --filter "Name=instance-state-name,Values=running" --filters "Name=instance.group-name,Values=ElasticMapReduce-master" --query "Reservations[*].Instances[*].[PublicDnsName]" --output text --profile burner        
+
+
+#connecting to master node
+ssh -i AWS_EC2_Demo.pem hadoop@ec2-3-139-93-181.us-east-2.compute.amazonaws.com
+
+
+Configure Proxy Settings in your Local Computer using SwitchyOmega or FoxyProxy (link below)
+Though, you can access the same Spark UI by selecting the cluster summary from the EMR console → Clusters, and clicking on the Persistent user interface hyperlink(under Application user interfaces).
+
+http://<master node public DNS for you)>:18080/
+http://ec2-35-87-128-103.us-west-2.compute.amazonaws.com:18080/
+
+
+
+
+
+
+##usefull notes
+#instance types
+https://docs.aws.amazon.com/emr/latest/ManagementGuide/emr-supported-instance-types.html
+
+#connecting via putty
+https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/putty.html
+
+#inbound traffic
+https://docs.aws.amazon.com/emr/latest/ManagementGuide/emr-connect-ssh-prereqs.html
+
+#SSH tunnel to the master node using dynamic port forwarding 
+https://docs.aws.amazon.com/emr/latest/ManagementGuide/emr-ssh-tunnel.html
+
+# Configure proxy settings to view UI
+https://docs.aws.amazon.com/emr/latest/ManagementGuide/emr-connect-master-node-proxy.html
